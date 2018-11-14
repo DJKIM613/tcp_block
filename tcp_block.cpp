@@ -84,6 +84,8 @@ int is_tcp_packet(const u_char *packet, uint8_t len){       // return 2 at http,
 }
 
 void send_eth_ipv4_tcp_rst(pcap_t *handle, u_char *p, uint32_t len, u_char *eth_dhost, u_char *eth_shost, u_char *ipv4_src_adr, u_char *ipv4_dst_adr, uint16_t tcp_src_port, uint16_t tcp_dst_port, uint32_t tcp_seq, uint32_t tcp_ack, int is_syn, int is_ack){
+    memset(p, 0, len);
+
     struct libnet_ethernet_hdr *eth_hdr = (struct libnet_ethernet_hdr *)p;
     memcpy(eth_hdr->ether_dhost, eth_dhost, 6);
     memcpy(eth_hdr->ether_shost, eth_shost, 6);
@@ -104,7 +106,7 @@ void send_eth_ipv4_tcp_rst(pcap_t *handle, u_char *p, uint32_t len, u_char *eth_
     tcp_hdr->th_ack = htonl(tcp_ack);
     tcp_hdr->th_off = 5;
     tcp_hdr->th_flags |= TH_RST;    tcp_hdr->th_flags |= TH_SYN * is_syn;   tcp_hdr->th_flags |= TH_ACK * is_ack;
-    printf("%02x\n", tcp_hdr->th_sport);
+    
     struct pseudo_tcp_header psd_tcp_hdr;
     memset(&psd_tcp_hdr, 0, sizeof(struct pseudo_tcp_header));
     psd_tcp_hdr.ip_src = *(uint32_t *)ipv4_src_adr;
@@ -119,6 +121,8 @@ void send_eth_ipv4_tcp_rst(pcap_t *handle, u_char *p, uint32_t len, u_char *eth_
 }
 
 void send_eth_ipv4_tcp_fin(pcap_t *handle, u_char *p, uint32_t len, u_char *eth_dhost, u_char *eth_shost, u_char *ipv4_src_adr, u_char *ipv4_dst_adr, uint16_t tcp_src_port, uint16_t tcp_dst_port, uint32_t tcp_seq, uint32_t tcp_ack, int is_syn, int is_ack){
+    memset(p, 0, len);
+
     struct libnet_ethernet_hdr *eth_hdr = (struct libnet_ethernet_hdr *)p;
     memcpy(eth_hdr->ether_dhost, eth_dhost, 6);
     memcpy(eth_hdr->ether_shost, eth_shost, 6);
@@ -194,11 +198,9 @@ int main(int argc, char **argv){
         uint32_t tcp_ack = ntohl(tcp_hdr->th_ack);
         
         uint32_t tcp_len = ntohs(ipv4_hdr->ip_len) - (ipv4_hdr->ip_hl) * 4 - (tcp_hdr->th_off) * 4;
-        printf("seq : %lld\n", tcp_seq + tcp_len);
         u_char *p = (u_char *)malloc(200);
 
         if(res == 2){
-            printf("hi\n");
             send_eth_ipv4_tcp_rst(handle, p, 200, eth_dhost, eth_shost, ipv4_src_adr, ipv4_dst_adr, tcp_src_port, tcp_dst_port, tcp_seq + tcp_len, tcp_ack, 1, 0);          //original_path
             send_eth_ipv4_tcp_fin(handle, p, 200, eth_shost, eth_dhost, ipv4_dst_adr, ipv4_src_adr, tcp_dst_port, tcp_src_port, tcp_ack, tcp_seq + tcp_len, 0, 1);          //reverse_path
         }
